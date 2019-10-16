@@ -102,34 +102,9 @@ BOOL CComDemoDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-	EnumPort();
-	SendBuf1[0] = 0X71;
-	SendBuf1[1] = 0Xfe;
-	SendBuf1[2] = 0X10;
-	SendBuf1[3] = 0Xaa;
-	SendBuf1[4] = 0Xbb;
-	SendBuf1[5] = 0Xcc;
-	SendBuf1[6] = 0Xdd;
-	SendBuf1[7] = 0X00;
-	SendBuf2[0] = 0X71;
-	SendBuf2[1] = 0Xfe;
-	SendBuf2[2] = 0X11;
-	SendBuf2[3] = 0X12;
-	SendBuf2[4] = 0X34;
-	SendBuf2[5] = 0X56;
-	SendBuf2[6] = 0X78;
-	SendBuf2[7] = 0X00;
-	if (!mySerialPort.InitPort(PortNum, CBR_9600, 'N', 8, 1, EV_RXCHAR))//是否打开串口，3就是你外设连接电脑的com口，可以在设备管理器查看，然后更改这个参数
+	if (!Communication())
 	{
-		MessageBox("initPort fail !" );
-	}
-	if (!mySerialPort.OpenListenThread())//是否打开监听线程，开启线程用来传输返回值
-	{
-		MessageBox("OpenListenThread fail !" );
-	}
-	if (!mySerialPort.WriteData(SendBuf1,8))
-	{
-		MessageBox("WriteData fail !");
+		MessageBox("无法与相机通信，请重试", "Warning");
 	}
 	
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -188,17 +163,7 @@ HCURSOR CComDemoDlg::OnQueryDragIcon()
 
 void CComDemoDlg::OnBnClickedButton1()
 {
-	//m_Recived = mySerialPort.b;
-	//MessageBox(m_Recived.c_str());
-	m_Recived = "";
-	//第二次通信
-	if (!mySerialPort.WriteData(SendBuf2, 8))
-	{
-		MessageBox("WriteData fail !");
-	}
-	Sleep(30);
-	m_Recived = mySerialPort.b;
-	MessageBox(m_Recived.c_str());
+	
 }
 
 //枚举串口
@@ -223,4 +188,95 @@ int CComDemoDlg::EnumPort()
 		}
 	}
 	return PortNum;
+}
+
+//通信校验
+bool CComDemoDlg::Communication()
+{
+	isCommunication = false;
+	EnumPort();
+	SendBuf1[0] = 0X71;
+	SendBuf1[1] = 0Xfe;
+	SendBuf1[2] = 0X10;
+	SendBuf1[3] = 0Xaa;
+	SendBuf1[4] = 0Xbb;
+	SendBuf1[5] = 0Xcc;
+	SendBuf1[6] = 0Xdd;
+	SendBuf1[7] = 0X00;
+	SendBuf2[0] = 0X71;
+	SendBuf2[1] = 0Xfe;
+	SendBuf2[2] = 0X11;
+	SendBuf2[3] = 0X12;
+	SendBuf2[4] = 0X34;
+	SendBuf2[5] = 0X56;
+	SendBuf2[6] = 0X78;
+	SendBuf2[7] = 0X00;
+	SendBuf3[0] = 0X71;
+	SendBuf3[1] = 0Xfe;
+	SendBuf3[2] = 0X12;
+	SendBuf3[3] = 0Xaa;
+	SendBuf3[4] = 0Xbb;
+	SendBuf3[5] = 0Xcc;
+	SendBuf3[6] = 0Xdd;
+	SendBuf3[7] = 0X00;
+	if (!mySerialPort.InitPort(PortNum, CBR_9600, 'N', 8, 1, EV_RXCHAR))//是否打开串口，3就是你外设连接电脑的com口，可以在设备管理器查看，然后更改这个参数
+	{
+		MessageBox("initPort fail !");
+		return false;
+	}
+	if (!mySerialPort.OpenListenThread())//是否打开监听线程，开启线程用来传输返回值
+	{
+		MessageBox("OpenListenThread fail !");
+		return false;
+	}
+	if (!mySerialPort.WriteData(SendBuf1, 8))
+	{
+		MessageBox("WriteData fail !");
+		return false;
+	}
+	else
+	{
+		Sleep(30);
+	}
+	m_Recived = mySerialPort.b;//第一次接收到的数据
+	if (m_Recived.c_str() == RecevedBuf1)
+	{
+		if (!mySerialPort.WriteData(SendBuf2, 8))
+		{
+			MessageBox("WriteData fail !");
+			return false;
+		}
+		else
+		{
+			Sleep(30);
+		}
+		m_Recived = mySerialPort.b;//第二次接收到的数据
+		//MessageBox(m_Recived.c_str());
+		if (m_Recived.c_str() == RecevedBuf2)
+		{
+			/*if (!mySerialPort.WriteData(SendBuf3, 8))
+			{
+				MessageBox("WriteData fail !");
+				return false;
+			}
+			else
+			{
+				Sleep(30);
+				isCommunication = true;
+			}*/
+			isCommunication = true;
+			MessageBox("ok");
+		}
+		else
+		{
+			MessageBox("not equal");
+			return false;
+		}
+	}
+	else
+	{
+		MessageBox("not equal");
+		return false;
+	}
+	return isCommunication;
 }
